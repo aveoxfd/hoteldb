@@ -1,5 +1,5 @@
 public class HotelList {
-    public long ID;
+    public String ID;
     public Person administator;
     public Person director;
     public String hotelName;
