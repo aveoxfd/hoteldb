@@ -10,7 +10,8 @@ public class Main {
         "Create a new list",
         //"Edit an entry",
         //"Search",
-        "View full DB"
+        "View full DB",
+        "Edit Database"
     };
 
     private static int width = 500;
@@ -67,115 +68,17 @@ public class Main {
             }
             else if(mainMenuButtonNames=="View full DB"){
                 button.addActionListener(e -> {
-                    // build table model from in-memory DB
-                    String[] cols = new String[]{
-                        "ID","HotelName","City","AddressName","StreetNumber","HouseNumber","DoorNumber",
-                        "AdminFirst","AdminSecond","AdminMiddle","AdminPhone","AdminPost",
-                        "DirectorFirst","DirectorSecond","DirectorMiddle","DirectorPhone","DirectorPost"
-                    };
-
-                    javax.swing.table.DefaultTableModel model = new javax.swing.table.DefaultTableModel(cols, 0) {
-                        @Override
-                        public boolean isCellEditable(int row, int column) {
-                            return true; // allow inline editing
-                        }
-                    };
-
-                    for (HotelList h : hotelDatabase) {
-                        if (h == null) continue;
-                        String id = h.ID == null ? "" : h.ID;
-                        String hotelName = h.hotelName == null ? "" : h.hotelName;
-                        String city = h.hotelAddress != null && h.hotelAddress.cityName != null ? h.hotelAddress.cityName : "";
-                        String addrName = h.hotelAddress != null && h.hotelAddress.addressName != null ? h.hotelAddress.addressName : "";
-                        String streetNumber = h.hotelAddress != null ? String.valueOf(h.hotelAddress.streetNumber) : "";
-                        String houseNumber = h.hotelAddress != null ? String.valueOf(h.hotelAddress.houseNumber) : "";
-                        String doorNumber = h.hotelAddress != null ? String.valueOf(h.hotelAddress.doorNumber) : "";
-
-                        Person a = h.administator;
-                        Person d = h.director;
-                        String aFirst = a != null && a.firstName != null ? a.firstName : "";
-                        String aSecond = a != null && a.secondName != null ? a.secondName : "";
-                        String aMiddle = a != null && a.middleName != null ? a.middleName : "";
-                        String aPhone = a != null && a.phoneNumber != null ? a.phoneNumber : "";
-                        String aPost = a != null && a.post != null ? a.post : "";
-
-                        String dFirst = d != null && d.firstName != null ? d.firstName : "";
-                        String dSecond = d != null && d.secondName != null ? d.secondName : "";
-                        String dMiddle = d != null && d.middleName != null ? d.middleName : "";
-                        String dPhone = d != null && d.phoneNumber != null ? d.phoneNumber : "";
-                        String dPost = d != null && d.post != null ? d.post : "";
-
-                        model.addRow(new Object[]{
-                            id, hotelName, city, addrName, streetNumber, houseNumber, doorNumber,
-                            aFirst, aSecond, aMiddle, aPhone, aPost,
-                            dFirst, dSecond, dMiddle, dPhone, dPost
-                        });
-                    }
-
-                    JFrame viewFrame = new JFrame("Full DB - " + hotelDatabase.size() + " records");
-                    viewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                    viewFrame.setSize(900, 400);
-                    viewFrame.setLocationRelativeTo(frame);
-
-                    JTable table = new JTable(model);
-                    table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-                    JScrollPane scroll = new JScrollPane(table);
-                    viewFrame.add(scroll, java.awt.BorderLayout.CENTER);
-
-
-                    JPanel bottom = new JPanel();
-                    JButton deleteBtn = new JButton("Delete Selected");
-                    deleteBtn.addActionListener(ae -> {
-                        int sel = table.getSelectedRow();
-                        if (sel >= 0) {
-                            ((javax.swing.table.DefaultTableModel) table.getModel()).removeRow(sel);
-                            // rebuild database from table so indexes stay consistent
-                            rebuildDatabaseFromTable(table);
-                        } else {
-                            JOptionPane.showMessageDialog(viewFrame, "Select a row to delete.");
-                        }
-                    });
-
-                    JButton applyBtn = new JButton("Save Changes");
-                    applyBtn.addActionListener(ae -> {
-                        rebuildDatabaseFromTable(table);
-                        try {
-                            Path dbDir = Paths.get("db");
-                            if (!Files.exists(dbDir)) Files.createDirectories(dbDir);
-                            CSVbd.save(hotelDatabase, dbDir.resolve("hotels.csv").toString());
-                            JOptionPane.showMessageDialog(viewFrame, "Saved " + hotelDatabase.size() + " records to db/hotels.csv");
-                        } catch (IOException ex) {
-                            JOptionPane.showMessageDialog(viewFrame, "Failed to save CSV: " + ex.getMessage());
-                            ex.printStackTrace();
-                        }
-                    });
-
-                    JButton saveBtn = new JButton("Save CSV");
-                    saveBtn.addActionListener(ae -> {
-                        // ensure table edits are captured before saving
-                        rebuildDatabaseFromTable(table);
-                        try {
-                            Path dbDir = Paths.get("db");
-                            if (!Files.exists(dbDir)) Files.createDirectories(dbDir);
-                            CSVbd.save(hotelDatabase, dbDir.resolve("hotels.csv").toString());
-                            JOptionPane.showMessageDialog(viewFrame, "Saved " + hotelDatabase.size() + " records to db/hotels.csv");
-                        } catch (IOException ex) {
-                            JOptionPane.showMessageDialog(viewFrame, "Failed to save CSV: " + ex.getMessage());
-                            ex.printStackTrace();
-                        }
-                    });
-
-                    bottom.add(deleteBtn);
-                    bottom.add(applyBtn);
-                    bottom.add(saveBtn);
-                    viewFrame.add(bottom, java.awt.BorderLayout.SOUTH);
-
-                    viewFrame.setVisible(true);
+                    openDatabaseViewer();
                 });
             }
-            else if (mainMenuButtonNames=="Edit an entry"){
+            else if(mainMenuButtonNames=="Edit an entry"){
                 button.addActionListener(e -> {
                     //TODO
+                });
+            }
+            else if(mainMenuButtonNames=="Edit Database"){
+                button.addActionListener(e -> {
+                    openDatabaseRedactor();
                 });
             }
 
@@ -188,6 +91,177 @@ public class Main {
         System.out.println(taskManager.getTaskCount());
         //TODO
     }
+
+    private static void openDatabaseViewer(){
+        // build table model from in-memory DB
+        String[] cols = new String[]{
+            "ID","HotelName","City","AddressName","StreetNumber","HouseNumber","DoorNumber",
+            "AdminFirst","AdminSecond","AdminMiddle","AdminPhone","AdminPost",
+            "DirectorFirst","DirectorSecond","DirectorMiddle","DirectorPhone","DirectorPost"
+        };
+
+        javax.swing.table.DefaultTableModel model = new javax.swing.table.DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // read-only, no editing
+            }
+        };
+
+        for (HotelList h : hotelDatabase) {
+            if (h == null) continue;
+            String id = h.ID == null ? "" : h.ID;
+            String hotelName = h.hotelName == null ? "" : h.hotelName;
+            String city = h.hotelAddress != null && h.hotelAddress.cityName != null ? h.hotelAddress.cityName : "";
+            String addrName = h.hotelAddress != null && h.hotelAddress.addressName != null ? h.hotelAddress.addressName : "";
+            String streetNumber = h.hotelAddress != null ? String.valueOf(h.hotelAddress.streetNumber) : "";
+            String houseNumber = h.hotelAddress != null ? String.valueOf(h.hotelAddress.houseNumber) : "";
+            String doorNumber = h.hotelAddress != null ? String.valueOf(h.hotelAddress.doorNumber) : "";
+
+            Person a = h.administator;
+            Person d = h.director;
+            String aFirst = a != null && a.firstName != null ? a.firstName : "";
+            String aSecond = a != null && a.secondName != null ? a.secondName : "";
+            String aMiddle = a != null && a.middleName != null ? a.middleName : "";
+            String aPhone = a != null && a.phoneNumber != null ? a.phoneNumber : "";
+            String aPost = a != null && a.post != null ? a.post : "";
+
+            String dFirst = d != null && d.firstName != null ? d.firstName : "";
+            String dSecond = d != null && d.secondName != null ? d.secondName : "";
+            String dMiddle = d != null && d.middleName != null ? d.middleName : "";
+            String dPhone = d != null && d.phoneNumber != null ? d.phoneNumber : "";
+            String dPost = d != null && d.post != null ? d.post : "";
+
+            model.addRow(new Object[]{
+                id, hotelName, city, addrName, streetNumber, houseNumber, doorNumber,
+                aFirst, aSecond, aMiddle, aPhone, aPost,
+                dFirst, dSecond, dMiddle, dPhone, dPost
+            });
+        }
+
+        JFrame viewFrame = new JFrame("Full DB - " + hotelDatabase.size() + " records");
+        viewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        viewFrame.setSize(900, 400);
+        viewFrame.setLocationRelativeTo(frame);
+
+        JTable table = new JTable(model);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        JScrollPane scroll = new JScrollPane(table);
+        viewFrame.add(scroll, java.awt.BorderLayout.CENTER);
+
+
+        JPanel bottom = new JPanel();
+        JButton closeBtn = new JButton("Close");
+        closeBtn.addActionListener(ae -> viewFrame.dispose());
+        bottom.add(closeBtn);
+        viewFrame.add(bottom, java.awt.BorderLayout.SOUTH);
+
+        viewFrame.setVisible(true);
+    }
+
+    private static void openDatabaseRedactor(){
+        // Build table model from in-memory DB
+        String[] cols = new String[]{
+            "ID","HotelName","City","AddressName","StreetNumber","HouseNumber","DoorNumber",
+            "AdminFirst","AdminSecond","AdminMiddle","AdminPhone","AdminPost",
+            "DirectorFirst","DirectorSecond","DirectorMiddle","DirectorPhone","DirectorPost"
+        };
+
+        javax.swing.table.DefaultTableModel model = new javax.swing.table.DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return true; // allow inline editing
+            }
+        };
+
+        for (HotelList h : hotelDatabase) {
+            if (h == null) continue;
+            String id = h.ID == null ? "" : h.ID;
+            String hotelName = h.hotelName == null ? "" : h.hotelName;
+            String city = h.hotelAddress != null && h.hotelAddress.cityName != null ? h.hotelAddress.cityName : "";
+            String addrName = h.hotelAddress != null && h.hotelAddress.addressName != null ? h.hotelAddress.addressName : "";
+            String streetNumber = h.hotelAddress != null ? String.valueOf(h.hotelAddress.streetNumber) : "";
+            String houseNumber = h.hotelAddress != null ? String.valueOf(h.hotelAddress.houseNumber) : "";
+            String doorNumber = h.hotelAddress != null ? String.valueOf(h.hotelAddress.doorNumber) : "";
+
+            Person a = h.administator;
+            Person d = h.director;
+            String aFirst = a != null && a.firstName != null ? a.firstName : "";
+            String aSecond = a != null && a.secondName != null ? a.secondName : "";
+            String aMiddle = a != null && a.middleName != null ? a.middleName : "";
+            String aPhone = a != null && a.phoneNumber != null ? a.phoneNumber : "";
+            String aPost = a != null && a.post != null ? a.post : "";
+
+            String dFirst = d != null && d.firstName != null ? d.firstName : "";
+            String dSecond = d != null && d.secondName != null ? d.secondName : "";
+            String dMiddle = d != null && d.middleName != null ? d.middleName : "";
+            String dPhone = d != null && d.phoneNumber != null ? d.phoneNumber : "";
+            String dPost = d != null && d.post != null ? d.post : "";
+
+            model.addRow(new Object[]{
+                id, hotelName, city, addrName, streetNumber, houseNumber, doorNumber,
+                aFirst, aSecond, aMiddle, aPhone, aPost,
+                dFirst, dSecond, dMiddle, dPhone, dPost
+            });
+        }
+
+        JFrame redactorFrame = new JFrame("Database Redactor - " + hotelDatabase.size() + " records");
+        redactorFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        redactorFrame.setSize(900, 400);
+        redactorFrame.setLocationRelativeTo(frame);
+
+        JTable table = new JTable(model);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        JScrollPane scroll = new JScrollPane(table);
+        redactorFrame.add(scroll, java.awt.BorderLayout.CENTER);
+
+        JPanel bottom = new JPanel();
+        
+        JButton addRowBtn = new JButton("Add New Row");
+        addRowBtn.addActionListener(ae -> {
+            ((javax.swing.table.DefaultTableModel) table.getModel()).addRow(new Object[]{
+                "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""
+            });
+        });
+
+        JButton deleteBtn = new JButton("Delete Selected");
+        deleteBtn.addActionListener(ae -> {
+            int sel = table.getSelectedRow();
+            if (sel >= 0) {
+                ((javax.swing.table.DefaultTableModel) table.getModel()).removeRow(sel);
+                rebuildDatabaseFromTable(table);
+            } else {
+                JOptionPane.showMessageDialog(redactorFrame, "Select a row to delete.");
+            }
+        });
+
+        JButton saveBtn = new JButton("Save to Database");
+        saveBtn.addActionListener(ae -> {
+            rebuildDatabaseFromTable(table);
+            try {
+                Path dbDir = Paths.get("db");
+                if (!Files.exists(dbDir)) Files.createDirectories(dbDir);
+                CSVbd.save(hotelDatabase, dbDir.resolve("hotels.csv").toString());
+                JOptionPane.showMessageDialog(redactorFrame, "Saved " + hotelDatabase.size() + " records to db/hotels.csv");
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(redactorFrame, "Failed to save CSV: " + ex.getMessage());
+                ex.printStackTrace();
+            }
+        });
+
+        JButton closeBtn = new JButton("Close");
+        closeBtn.addActionListener(ae -> {
+            redactorFrame.dispose();
+        });
+
+        bottom.add(addRowBtn);
+        bottom.add(deleteBtn);
+        bottom.add(saveBtn);
+        bottom.add(closeBtn);
+        redactorFrame.add(bottom, java.awt.BorderLayout.SOUTH);
+
+        redactorFrame.setVisible(true);
+    }
+
     private static void listRedactor(){
         String listRedactorButtons[] = {
             "<-",
